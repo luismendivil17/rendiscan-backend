@@ -1,9 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { q } from '../db/index.js';
 
-/**
- * Crear usuario
- */
+
 export async function crearUsuario({ nombre, email, password, rol = 'solicitante', area_id = null }) {
   const hash = await bcrypt.hash(password, 10);
 
@@ -17,9 +15,7 @@ export async function crearUsuario({ nombre, email, password, rol = 'solicitante
   return rows[0];
 }
 
-/**
- * Listar usuarios
- */
+
 export async function listarUsuarios(_req, res, next) {
   try {
     const { rows } = await q(`
@@ -33,22 +29,24 @@ export async function listarUsuarios(_req, res, next) {
 }
 
 
-/**
- * Obtener usuario por ID
- */
+
 export async function obtenerUsuarioPorId(id) {
-  const { rows } = await q(
-    `SELECT id, nombre, email, rol, area_id, creado_en
-     FROM usuarios
-     WHERE id = $1 LIMIT 1`,
-    [id]
-  );
-  return rows[0] || null;
+  const sql = `
+    SELECT
+      u.id, u.nombre, u.email, u.rol, u.estado, u.area_id, u.creado_en,
+      a.nombre AS area_nombre
+    FROM usuarios u
+    LEFT JOIN areas a ON a.id = u.area_id
+    WHERE u.id = $1::uuid
+    LIMIT 1;
+  `;
+  const { rows } = await q(sql, [String(id).trim()]);
+  return rows[0] || null; 
 }
 
-/**
- * Actualizar usuario
- */
+
+
+
 export async function actualizarUsuario(id, data = {}) {
   const allowed = ['nombre', 'email', 'rol', 'area_id'];
   const sets = [];
@@ -72,9 +70,7 @@ export async function actualizarUsuario(id, data = {}) {
   return rows[0] || null;
 }
 
-/**
- * Cambiar contraseña
- */
+
 export async function cambiarPassword(id, nuevaPassword) {
   const hash = await bcrypt.hash(nuevaPassword, 10);
   const { rows } = await q(

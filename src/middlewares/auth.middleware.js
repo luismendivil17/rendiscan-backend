@@ -27,10 +27,22 @@ export const requireAuth = async (req, res, next) => {
   }
 };
 
-export const requireRole = (...roles) => {
+export const requireRole = (...need) => {
+  // Acepta tanto requireRole('admin','aprobador') como requireRole(['admin','aprobador'])
+  const allowed = need
+    .flatMap(r => Array.isArray(r) ? r : [r])
+    .filter(Boolean)
+    .map(r => String(r).trim().toLowerCase());
+
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.rol)) {
-      return res.status(403).json({ error: 'No autorizado' });
+    const got = String(req.user?.rol ?? '').trim().toLowerCase();
+    if (!allowed.includes(got)) {
+      return res.status(403).json({
+        error: 'Require rol',
+        need: allowed,
+        got,
+        user: req.user?.id,
+      });
     }
     next();
   };
